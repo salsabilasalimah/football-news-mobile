@@ -1,55 +1,85 @@
 import 'package:flutter/material.dart';
-import 'package:football_news/screens/newslist_form.dart'; // Import dari lokasi baru
+import 'package:football_news/screens/newslist_form.dart';
+import 'package:football_news/screens/news_entry_list.dart';
+import 'package:football_news/screens/login.dart';
+import 'package:pbp_django_auth/pbp_django_auth.dart';
+import 'package:provider/provider.dart';
 
 class ItemHomepage {
- final String name;
- final IconData icon;
+  final String name;
+  final IconData icon;
 
- ItemHomepage(this.name, this.icon);
+  ItemHomepage(this.name, this.icon);
 }
 
 class ItemCard extends StatelessWidget {
-  // Menampilkan kartu dengan ikon dan nama.
+  final ItemHomepage item;
 
-  final ItemHomepage item; 
-
-  const ItemCard(this.item, {super.key}); 
+  const ItemCard(this.item, {super.key});
 
   @override
   Widget build(BuildContext context) {
+    final request = context.watch<CookieRequest>(); // ✅ ambil cookie session
     return Material(
-      // Menentukan warna latar belakang dari tema aplikasi.
       color: Theme.of(context).colorScheme.secondary,
-      // Membuat sudut kartu melengkung.
       borderRadius: BorderRadius.circular(12),
-
       child: InkWell(
-        // Aksi ketika kartu ditekan.
-        onTap: () {
-          // Menampilkan pesan SnackBar saat kartu ditekan.
+        onTap: () async {
           ScaffoldMessenger.of(context)
             ..hideCurrentSnackBar()
             ..showSnackBar(
-              SnackBar(content: Text("Kamu telah menekan tombol ${item.name}!"))
+              SnackBar(content: Text("Kamu telah menekan tombol ${item.name}!")),
             );
-          
-          // Navigate ke route yang sesuai
-          if (item.name == "Add News") { // Logika navigasi untuk tombol "Add News"
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  // Pastikan kelas NewsFormPage diimpor dari lokasi yang benar
-                  builder: (context) => const NewsFormPage(), 
-                ),
-              );
+
+          if (item.name == "Add News") {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => const NewsFormPage(),
+              ),
+            );
+          } else if (item.name == "See Football News") {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => const NewsEntryListPage(),
+              ),
+            );
+          } 
+          // ✅ Tambahkan Logout di sini
+          else if (item.name == "Logout") {
+            final response = await request.logout(
+              "http://localhost:8000/auth/logout/", // ubah kalau pakai emulator
+            );
+
+            String message = response["message"];
+
+            if (context.mounted) {
+              if (response['status']) {
+                String uname = response["username"];
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text("$message See you again, $uname."),
+                  ),
+                );
+                Navigator.pushReplacement(
+                  context,
+                  MaterialPageRoute(builder: (context) => const LoginPage()),
+                );
+              } else {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(message),
+                  ),
+                );
+              }
+            }
           }
         },
-        // Container untuk menyimpan Icon dan Text
         child: Container(
           padding: const EdgeInsets.all(8),
           child: Center(
             child: Column(
-              // Menyusun ikon dan teks di tengah kartu.
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Icon(
@@ -70,5 +100,4 @@ class ItemCard extends StatelessWidget {
       ),
     );
   }
-
 }

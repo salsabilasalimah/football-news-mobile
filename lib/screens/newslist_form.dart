@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
 // TODO: Impor drawer yang sudah dibuat sebelumnya
 import 'package:football_news/widgets/left_drawer.dart';
+import 'dart:convert';
+import 'package:provider/provider.dart';
+import 'package:pbp_django_auth/pbp_django_auth.dart';
+import 'package:football_news/screens/menu.dart';
 
 class NewsFormPage extends StatefulWidget {
     const NewsFormPage({super.key});
@@ -29,6 +33,7 @@ class _NewsFormPageState extends State<NewsFormPage> {
 
     @override
     Widget build(BuildContext context) {
+       final request = context.watch<CookieRequest>();
         return Scaffold(
             appBar: AppBar(
                 title: const Center(
@@ -167,45 +172,44 @@ class _NewsFormPageState extends State<NewsFormPage> {
                                             backgroundColor:
                                                 MaterialStateProperty.all(Colors.indigo),
                                         ),
-                                        onPressed: () {
-                                            if (_formKey.currentState!.validate()) {
-                                                showDialog(
-                                                    context: context,
-                                                    builder: (context) {
-                                                        return AlertDialog(
-                                                            title: const Text('Berita berhasil disimpan!'),
-                                                            content: SingleChildScrollView(
-                                                                child: Column(
-                                                                    crossAxisAlignment:
-                                                                        CrossAxisAlignment.start,
-                                                                    children: [
-                                                                        Text('Judul: $_title'),
-                                                                        const SizedBox(height: 8.0),
-                                                                        Text('Isi: $_content'),
-                                                                        const SizedBox(height: 8.0),
-                                                                        Text('Kategori: $_category'),
-                                                                        const SizedBox(height: 8.0),
-                                                                        Text('Thumbnail: $_thumbnail'),
-                                                                        const SizedBox(height: 8.0),
-                                                                        Text(
-                                                                            'Unggulan: ${_isFeatured ? "Ya" : "Tidak"}'),
-                                                                    ],
-                                                                ),
-                                                            ),
-                                                            actions: [
-                                                                TextButton(
-                                                                    child: const Text('OK'),
-                                                                    onPressed: () {
-                                                                        Navigator.pop(context);
-                                                                    },
-                                                                ),
-                                                            ],
-                                                        );
-                                                    },
+                                        onPressed: () async {
+                                              if (_formKey.currentState!.validate()) {
+                                                // Ganti URL sesuai backend kamu
+                                                // Jika kamu run di Chrome → gunakan localhost
+                                                // Jika kamu run di Android Emulator → gunakan 10.0.2.2
+                                                final response = await request.postJson(
+                                                  "http://localhost:8000/create-flutter/", // ⚠️ ubah ke endpoint kamu
+                                                  jsonEncode({
+                                                    "title": _title,
+                                                    "content": _content,
+                                                    "thumbnail": _thumbnail,
+                                                    "category": _category,
+                                                    "is_featured": _isFeatured,
+                                                  }),
                                                 );
-                                                _formKey.currentState!.reset();
-                                            }
-                                        },
+
+                                                if (context.mounted) {
+                                                  if (response['status'] == 'success') {
+                                                    ScaffoldMessenger.of(context).showSnackBar(
+                                                      const SnackBar(
+                                                        content: Text("News successfully saved!"),
+                                                      ),
+                                                    );
+                                                    Navigator.pushReplacement(
+                                                      context,
+                                                      MaterialPageRoute(builder: (context) =>  MyHomePage()),
+                                                    );
+                                                  } else {
+                                                    ScaffoldMessenger.of(context).showSnackBar(
+                                                      const SnackBar(
+                                                        content: Text("Something went wrong, please try again."),
+                                                      ),
+                                                    );
+                                                  }
+                                                }
+                                              }
+                                            },
+
                                         child: const Text(
                                             "Simpan",
                                             style: TextStyle(color: Colors.white),
